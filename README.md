@@ -1,2 +1,2 @@
-# slash-short-fiction
-Slash fiction writings by Hamid Yuksel
+# flash-short-fiction
+Flash fiction writings by Hamid Yuksel
