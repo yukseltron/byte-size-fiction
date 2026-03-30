@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>flash-short-fiction</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --accent:        #007AFF;
+      --accent-sel:    #0063D1;
+      --text-1:        #1C1C1E;
+      --text-2:        #636366;
+      --text-3:        #AEAEB2;
+      --text-4:        #C7C7CC;
+      --sep:           rgba(0,0,0,0.10);
+      --sep-strong:    rgba(0,0,0,0.16);
+      --sidebar-bg:    rgba(242,242,247,0.92);
+      --titlebar-bg:   rgba(235,235,235,0.95);
+      --content-bg:    #FFFFFF;
+      --row-hover:     rgba(0,0,0,0.045);
+      --sel-text:      #FFFFFF;
+      --shadow:        0 24px 80px rgba(0,0,0,0.32), 0 6px 18px rgba(0,0,0,0.18), inset 0 0 0 0.5px rgba(255,255,255,0.5);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background: #D4D4D4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* ─── Window ──────────────────────────────────────────────── */
+    .window {
+      width:  min(1080px, 100%);
+      height: min(700px, calc(100vh - 48px));
+      display: flex;
+      flex-direction: column;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      border: 0.5px solid rgba(0,0,0,0.25);
+    }
+
+    /* ─── Title bar ───────────────────────────────────────────── */
+    .titlebar {
+      height: 52px;
+      background: var(--titlebar-bg);
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      gap: 0;
+      border-bottom: 0.5px solid var(--sep-strong);
+      flex-shrink: 0;
+      position: relative;
+      -webkit-user-select: none;
+      user-select: none;
+      cursor: grab;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .titlebar:active { cursor: grabbing; }
+
+    .titlebar-center {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .titlebar-icon {
+      width: 16px;
+      height: 16px;
+      opacity: 0.55;
+    }
+
+    .titlebar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -0.15px;
+      max-width: 500px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── Panes ───────────────────────────────────────────────── */
+    .panes {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ─── Sidebar ─────────────────────────────────────────────── */
+    .sidebar {
+      width: 218px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-right: 0.5px solid var(--sep-strong);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .sidebar::-webkit-scrollbar { width: 0; }
+
+    .sidebar-section {
+      padding: 16px 0 8px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      padding: 0 18px 5px;
+    }
+
+    /* file row */
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 3px 10px 3px 14px;
+      margin: 0 5px;
+      border-radius: 7px;
+      cursor: default;
+      min-height: 27px;
+      transition: background 0.08s ease;
+    }
+
+    .row:hover { background: var(--row-hover); }
+
+    .row.active {
+      background: var(--accent-sel);
+    }
+
+    .row.active .row-name,
+    .row.active .row-icon { color: var(--sel-text); }
+
+    .row-icon {
+      font-size: 14px;
+      line-height: 1;
+      width: 17px;
+      text-align: center;
+      flex-shrink: 0;
+      color: var(--text-2);
+    }
+
+    .row-name {
+      font-size: 12.5px;
+      color: var(--text-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1;
+    }
+
+    /* folder */
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px 3px 10px;
+      margin: 0 5px;
+      border-radius: 7px;
+      cursor: default;
+      min-height: 27px;
+      transition: background 0.08s ease;
+    }
+
+    .folder-header:hover { background: var(--row-hover); }
+
+    .chevron {
+      width: 13px;
+      height: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.14s ease;
+    }
+
+    .chevron svg {
+      width: 8px;
+      height: 8px;
+      fill: none;
+      stroke: var(--text-3);
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chevron.open { transform: rotate(90deg); }
+
+    .folder-children {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .folder-children .row {
+      padding-left: 30px;
+    }
+
+    /* ─── Viewer ──────────────────────────────────────────────── */
+    .viewer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--content-bg);
+    }
+
+    .viewer-topbar {
+      height: 36px;
+      flex-shrink: 0;
+      border-bottom: 0.5px solid var(--sep);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      justify-content: space-between;
+      background: #FAFAFA;
+    }
+
+    .viewer-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .viewer-filename {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-1);
+      letter-spacing: -0.1px;
+    }
+
+    .viewer-ext {
+      font-size: 10.5px;
+      color: var(--text-3);
+      font-weight: 500;
+      background: #EFEFEF;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .viewer-meta {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    /* viewer content wrapper — must fill remaining height for scroll to work */
+    #js-content {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    /* empty state */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .empty-icon {
+      font-size: 40px;
+      opacity: 0.28;
+      line-height: 1;
+    }
+
+    .empty-primary {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-3);
+      letter-spacing: -0.1px;
+    }
+
+    .empty-secondary {
+      font-size: 11.5px;
+      color: var(--text-4);
+    }
+
+    /* content */
+    .viewer-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 36px 48px 48px;
+    }
+
+    .viewer-scroll::-webkit-scrollbar { width: 7px; }
+    .viewer-scroll::-webkit-scrollbar-track { background: transparent; }
+    .viewer-scroll::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.10);
+      border-radius: 4px;
+    }
+    .viewer-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.18);
+    }
+
+    .story-text {
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 12.5px;
+      line-height: 1.82;
+      color: #2C2C2E;
+      white-space: pre-wrap;
+      word-break: break-word;
+      tab-size: 4;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .story-text { animation: fadeUp 0.18s ease; }
+
+    /* ─── Status bar ──────────────────────────────────────────── */
+    .statusbar {
+      height: 22px;
+      background: var(--titlebar-bg);
+      border-top: 0.5px solid var(--sep-strong);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 16px;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .status-item {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .status-dot {
+      color: var(--text-4);
+    }
+
+    /* loading */
+    .loading-msg {
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 12px;
+      color: var(--text-3);
+      padding: 48px;
+      animation: fadeUp 0.2s ease;
+    }
+
+    .error-msg {
+      font-family: 'Menlo', 'Monaco', monospace;
+      font-size: 12px;
+      color: #FF3B30;
+      padding: 48px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- Title bar -->
+  <div class="titlebar" id="js-titlebar">
+    <div class="titlebar-center">
+      <svg class="titlebar-icon" viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="1" width="9" height="12" rx="1.5" fill="#8E8E93" opacity="0.5"/>
+        <rect x="5" y="3" width="9" height="12" rx="1.5" fill="#8E8E93"/>
+        <rect x="7" y="6" width="5" height="1" rx="0.5" fill="white" opacity="0.7"/>
+        <rect x="7" y="8.5" width="5" height="1" rx="0.5" fill="white" opacity="0.7"/>
+        <rect x="7" y="11" width="3" height="1" rx="0.5" fill="white" opacity="0.7"/>
+      </svg>
+      <span class="titlebar-title" id="js-title">flash-short-fiction</span>
+    </div>
+  </div>
+
+  <!-- Panes -->
+  <div class="panes">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="js-sidebar">
+      <div class="sidebar-section">
+        <div class="section-label">Stories</div>
+        <div id="js-tree"></div>
+      </div>
+    </aside>
+
+    <!-- Viewer -->
+    <main class="viewer" id="js-viewer">
+      <div class="viewer-topbar" id="js-topbar" style="display:none">
+        <div class="viewer-topbar-left">
+          <span class="viewer-filename" id="js-fname"></span>
+          <span class="viewer-ext">txt</span>
+        </div>
+        <span class="viewer-meta" id="js-meta"></span>
+      </div>
+      <div id="js-content">
+        <div class="empty-state">
+          <div class="empty-icon">🗂</div>
+          <div class="empty-primary">No file selected</div>
+          <div class="empty-secondary">Choose a story from the sidebar</div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <span class="status-item" id="js-status-left">18 stories</span>
+    <span class="status-dot">·</span>
+    <span class="status-item">8 poems</span>
+    <span class="status-dot">·</span>
+    <span class="status-item">Hamid Yuksel</span>
+  </div>
+
+</div>
+
+<script>
+  // ─── File tree definition ──────────────────────────────────────
+  const TREE = [
+    { name: "100daystodie.txt" },
+    { name: "bullit.txt" },
+    { name: "cactus-cereal.txt" },
+    { name: "Capria.txt" },
+    { name: "Chimera.txt" },
+    { name: "convergence.txt" },
+    { name: "DANWORKS STEELPIPE MERRYTIME.txt" },
+    { name: "Dreams of a Monster.txt" },
+    { name: "In Respect of the Blade.txt" },
+    { name: "Lost Loop.txt" },
+    { name: "MARTIAN WAR.txt" },
+    { name: "messages.txt" },
+    { name: "motivational.txt" },
+    { name: "MYDAY=-A.txt" },
+    { name: "San Fernando .txt" },
+    { name: "sublime-journey.txt" },
+    { name: "The Last Accident that caused the end of everything.txt" },
+    { name: "The Last King Balthazar.txt" },
+    {
+      name: "bit::poetry",
+      folder: true,
+      children: [
+        { name: "delot.txt" },
+        { name: "HUSTLE.txt" },
+        { name: "mile.txt" },
+        { name: "SIGNALLOST.txt" },
+        { name: "TETRIFIED.txt" },
+        { name: "tetre.txt" },
+        { name: "understanding the machine.txt" },
+        { name: "visage.txt" },
+      ]
+    }
+  ];
+
+  // ─── State ────────────────────────────────────────────────────
+  let activePath = null;
+  const folderState = {};
+
+  // ─── Build sidebar tree ───────────────────────────────────────
+  function buildTree(items, prefix = '') {
+    const frag = document.createDocumentFragment();
+
+    for (const item of items) {
+      if (item.folder) {
+        // Folder
+        const wrap = document.createElement('div');
+
+        const hdr = document.createElement('div');
+        hdr.className = 'folder-header';
+        hdr.innerHTML = `
+          <div class="chevron" id="ch-${item.name}">
+            <svg viewBox="0 0 8 8"><polyline points="2,1 6,4 2,7"/></svg>
+          </div>
+          <span class="row-icon">📁</span>
+          <span class="row-name">${item.name}</span>
+        `;
+
+        const kids = document.createElement('div');
+        kids.className = 'folder-children';
+        kids.id = `fc-${item.name}`;
+
+        // Build children
+        const childFrag = buildTree(item.children, item.name + '/');
+        kids.appendChild(childFrag);
+
+        hdr.addEventListener('click', () => toggleFolder(item.name, kids));
+
+        wrap.appendChild(hdr);
+        wrap.appendChild(kids);
+        frag.appendChild(wrap);
+
+      } else {
+        // File
+        const path = prefix + item.name;
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.dataset.path = path;
+        row.innerHTML = `
+          <span class="row-icon">📄</span>
+          <span class="row-name">${item.name}</span>
+        `;
+        row.addEventListener('click', () => openFile(path, item.name));
+        frag.appendChild(row);
+      }
+    }
+
+    return frag;
+  }
+
+  function toggleFolder(name, kidsEl) {
+    folderState[name] = !folderState[name];
+    const ch = document.getElementById(`ch-${name}`);
+    if (folderState[name]) {
+      ch.classList.add('open');
+      kidsEl.style.maxHeight = kidsEl.scrollHeight + 300 + 'px';
+    } else {
+      ch.classList.remove('open');
+      kidsEl.style.maxHeight = '0';
+    }
+  }
+
+  // ─── Open file ────────────────────────────────────────────────
+  async function openFile(path, name) {
+    // Highlight row
+    document.querySelectorAll('.row').forEach(r => {
+      r.classList.toggle('active', r.dataset.path === path);
+    });
+    activePath = path;
+
+    // Show topbar, update header
+    const topbar = document.getElementById('js-topbar');
+    topbar.style.display = 'flex';
+
+    const baseName = name.replace(/\.txt$/, '');
+    document.getElementById('js-fname').textContent = baseName;
+    document.getElementById('js-meta').textContent = '';
+    document.getElementById('js-title').textContent = name;
+
+    // Loading state
+    const content = document.getElementById('js-content');
+    content.innerHTML = '<div class="loading-msg">Loading…</div>';
+
+    try {
+      // Encode path segments to handle special chars (colons, spaces)
+      const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+      const res = await fetch(encodedPath);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+
+      // Render
+      const scroll = document.createElement('div');
+      scroll.className = 'viewer-scroll';
+
+      const pre = document.createElement('pre');
+      pre.className = 'story-text';
+      pre.textContent = text;
+
+      scroll.appendChild(pre);
+      content.innerHTML = '';
+      content.appendChild(scroll);
+
+      // Update meta
+      const words = text.trim().split(/\s+/).filter(Boolean).length;
+      const lines = text.split('\n').length;
+      document.getElementById('js-meta').textContent =
+        `${words.toLocaleString()} words · ${lines} lines`;
+
+      // Update status
+      document.getElementById('js-status-left').textContent = name;
+
+    } catch (err) {
+      content.innerHTML = `<div class="error-msg">Could not load "${path}".\n\nTo use this reader, serve the project folder over HTTP:\n\n    python3 -m http.server 8080\n\nThen open http://localhost:8080 in your browser.</div>`;
+    }
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────
+  const treeEl = document.getElementById('js-tree');
+  treeEl.appendChild(buildTree(TREE));
+
+  // ─── Draggable window ─────────────────────────────────────────
+  (function () {
+    const win      = document.querySelector('.window');
+    const titlebar = document.getElementById('js-titlebar');
+    let drag = null;
+    let tx = 0, ty = 0;
+
+    titlebar.addEventListener('mousedown', (e) => {
+      drag = { startX: e.clientX, startY: e.clientY, tx, ty };
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!drag) return;
+      tx = drag.tx + (e.clientX - drag.startX);
+      ty = drag.ty + (e.clientY - drag.startY);
+      win.style.transform = `translate(${tx}px, ${ty}px)`;
+    });
+
+    document.addEventListener('mouseup', () => { drag = null; });
+  })();
+</script>
+
+</body>
+</html>
