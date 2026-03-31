@@ -202,8 +202,74 @@ function buildTree(items, prefix = '') {
   return frag;
 }
 
+// ─── Tabs ─────────────────────────────────────────────────────
+const MAX_TABS = 5;
+let tabs = [];       // [{ path, name }]
+let activeTabPath = null;
+
+function renderTabs() {
+  const tabbar = document.getElementById('js-tabbar');
+  tabbar.style.display = tabs.length ? 'flex' : 'none';
+  tabbar.innerHTML = '';
+  for (const tab of tabs) {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.path === activeTabPath ? ' active' : '');
+    const nameEl = document.createElement('span');
+    nameEl.className = 'tab-name';
+    nameEl.textContent = tab.name.replace(/\.txt$/, '');
+    const closeEl = document.createElement('button');
+    closeEl.className = 'tab-close';
+    closeEl.title = 'Close';
+    closeEl.textContent = '×';
+    closeEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeTab(tab.path);
+    });
+    el.appendChild(nameEl);
+    el.appendChild(closeEl);
+    el.addEventListener('click', () => openFile(tab.path, tab.name));
+    tabbar.appendChild(el);
+  }
+}
+
+function closeTab(path) {
+  const idx = tabs.findIndex(t => t.path === path);
+  if (idx === -1) return;
+  tabs.splice(idx, 1);
+
+  if (activeTabPath === path) {
+    if (tabs.length > 0) {
+      const next = tabs[Math.min(idx, tabs.length - 1)];
+      openFile(next.path, next.name);
+      return; // openFile calls renderTabs
+    } else {
+      activeTabPath = null;
+      document.querySelectorAll('.row').forEach(r => r.classList.remove('active'));
+      document.getElementById('js-topbar').style.display = 'none';
+document.getElementById('js-status-left').textContent = '18 stories';
+      document.getElementById('js-content').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-secondary">Old things. New things. Past things. Future things.</div>
+          <div class="empty-secondary">Most of these were written a while ago and very, very quickly.</div>
+          <div class="empty-secondary">Maybe more will be added. Maybe this is all we'll see.</div>
+          <div class="empty-secondary">///////////////////</div>
+        </div>`;
+    }
+  }
+  renderTabs();
+}
+
 // ─── Open file ────────────────────────────────────────────────
 async function openFile(path, name) {
+  // Update tabs
+  const existing = tabs.findIndex(t => t.path === path);
+  if (existing === -1) {
+    if (tabs.length >= MAX_TABS) tabs.shift();
+    tabs.push({ path, name });
+  }
+  activeTabPath = path;
+  renderTabs();
+
   document.querySelectorAll('.row').forEach(r => {
     r.classList.toggle('active', r.dataset.path === path);
   });
@@ -212,7 +278,6 @@ async function openFile(path, name) {
   topbar.style.display = 'flex';
   document.getElementById('js-fname').textContent = name.replace(/\.txt$/, '');
   document.getElementById('js-meta').textContent  = '';
-  document.getElementById('js-title').textContent = name;
 
   const content = document.getElementById('js-content');
   content.innerHTML = '<div class="loading-msg">Loading…</div>';
