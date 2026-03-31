@@ -1,2 +1,7 @@
-# flash-short-fiction
-Flash fiction writings by Hamid Yuksel
+# Byte-Size Fiction
+
+Flash fiction writings.
+
+Alongside some shorter stuff.
+
+////////////
